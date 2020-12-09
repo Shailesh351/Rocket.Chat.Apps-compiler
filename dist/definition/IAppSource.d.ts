@@ -6,4 +6,3 @@ export interface IAppSource {
         [filename: string]: ICompilerFile;
     };
 }
-//# sourceMappingURL=IAppSource.d.ts.map

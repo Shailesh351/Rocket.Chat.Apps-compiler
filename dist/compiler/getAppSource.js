@@ -65,4 +65,3 @@ async function getAppSource(path) {
     return { appInfo, sourceFiles: files };
 }
 exports.getAppSource = getAppSource;
-//# sourceMappingURL=getAppSource.js.map

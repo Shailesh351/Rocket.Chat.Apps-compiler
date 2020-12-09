@@ -16,4 +16,3 @@ export declare class FolderDetails {
     private reportError;
     private reportMissing;
 }
-//# sourceMappingURL=folderDetails.d.ts.map

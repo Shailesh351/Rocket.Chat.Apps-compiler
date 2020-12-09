@@ -3,4 +3,3 @@ export interface ICompilerDescriptor {
     version: string;
     when?: Date;
 }
-//# sourceMappingURL=ICompilerDescriptor.d.ts.map

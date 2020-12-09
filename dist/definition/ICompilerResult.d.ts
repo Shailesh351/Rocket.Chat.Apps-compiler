@@ -11,4 +11,3 @@ export interface ICompilerResult {
     version: string;
     typeScriptVersion: string;
 }
-//# sourceMappingURL=ICompilerResult.d.ts.map

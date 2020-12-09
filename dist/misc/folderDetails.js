@@ -86,4 +86,3 @@ class FolderDetails {
     }
 }
 exports.FolderDetails = FolderDetails;
-//# sourceMappingURL=folderDetails.js.map

@@ -8,4 +8,3 @@ import { IFiles } from './IFiles';
 import { IMapCompilerFile } from './IMapCompilerFile';
 import { CompilerFileNotFoundError } from './CompilerFileNotFoundError';
 export { CompilerFileNotFoundError, IAppSource, ICompilerDescriptor, ICompilerDiagnostic, ICompilerError, ICompilerFile, IFiles, IMapCompilerFile, ICompilerResult, };
-//# sourceMappingURL=index.d.ts.map

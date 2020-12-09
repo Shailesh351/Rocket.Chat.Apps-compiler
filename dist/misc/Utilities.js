@@ -44,4 +44,3 @@ class Utilities {
     }
 }
 exports.Utilities = Utilities;
-//# sourceMappingURL=Utilities.js.map

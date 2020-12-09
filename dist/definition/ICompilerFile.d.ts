@@ -4,4 +4,3 @@ export interface ICompilerFile {
     version: number;
     compiled?: string;
 }
-//# sourceMappingURL=ICompilerFile.d.ts.map
