@@ -85,3 +85,4 @@ exports.appJsonSchema = {
         'iconFile',
     ],
 };
+//# sourceMappingURL=appJsonSchema.js.map

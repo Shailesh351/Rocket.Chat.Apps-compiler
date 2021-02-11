@@ -17,3 +17,4 @@ export declare class AppPackager {
     private asyncGlob;
     private asyncWriteZip;
 }
+//# sourceMappingURL=appPackager.d.ts.map

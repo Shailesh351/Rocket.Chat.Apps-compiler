@@ -99,3 +99,4 @@ AppPackager.GlobOptions = {
     ],
 };
 exports.AppPackager = AppPackager;
+//# sourceMappingURL=appPackager.js.map

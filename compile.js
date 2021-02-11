@@ -55,3 +55,4 @@ async function compile(compilerDesc, sourceDir, outputFile) {
     }
 }
 exports.compile = compile;
+//# sourceMappingURL=compile.js.map
