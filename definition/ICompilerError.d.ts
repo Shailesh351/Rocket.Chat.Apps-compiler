@@ -4,3 +4,4 @@ export interface ICompilerError {
     character: number;
     message: string;
 }
+//# sourceMappingURL=ICompilerError.d.ts.map

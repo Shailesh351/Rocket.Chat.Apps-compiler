@@ -5,3 +5,4 @@ export declare class Utilities {
     static allowedInternalModuleRequire(moduleName: string): boolean;
     static transformModuleForCustomRequire(moduleName: string): string;
 }
+//# sourceMappingURL=Utilities.d.ts.map

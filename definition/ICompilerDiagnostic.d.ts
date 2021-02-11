@@ -8,3 +8,4 @@ export interface ICompilerDiagnostic {
     originalMessage: string;
     originalDiagnostic: Diagnostic;
 }
+//# sourceMappingURL=ICompilerDiagnostic.d.ts.map

@@ -73,3 +73,4 @@ export declare const appJsonSchema: {
     };
     required: string[];
 };
+//# sourceMappingURL=appJsonSchema.d.ts.map
