@@ -14,7 +14,7 @@ async function walkDirectory(directory) {
         if (dirsToIgnore.some((dir) => res.includes(dir))) {
             return null;
         }
-        if (dirent.isDirectory()) {
+        if (dirent.isDirectory() || dirent.isSymbolicLink()) {
             return walkDirectory(res);
         }
         const content = await readfilePromise(res, 'utf8');

@@ -39,6 +39,7 @@ class AppsCompiler {
         const source = await getAppSource_1.getAppSource(path);
         const compilerResult = this.toJs(source);
         const { files, implemented } = compilerResult;
+        this.validateAppPermissionsSchema(source.appInfo.permissions);
         this.compiled = Object.entries(files)
             .map(([, { name, compiled }]) => ({ [name]: compiled }))
             .reduce((acc, cur) => Object.assign(acc, cur), {});
@@ -62,6 +63,22 @@ class AppsCompiler {
         }
         const packager = new appPackager_1.AppPackager(this.compilerDesc, fd, this, outputPath);
         return fs.promises.readFile(await packager.zipItUp());
+    }
+    validateAppPermissionsSchema(permissions) {
+        const examplePermissions = [{ name: 'user.read' }, { name: 'upload.write' }];
+        const error = new Error('Permissions declared in the app.json doesn\'t match the schema. '
+            + `It shoud be an peemissions array. e.g. ${JSON.stringify(examplePermissions)}`);
+        if (!permissions) {
+            return;
+        }
+        if (!Array.isArray(permissions)) {
+            throw error;
+        }
+        permissions.forEach((permission) => {
+            if (!permission || !permission.name) {
+                throw error;
+            }
+        });
     }
     toJs({ appInfo, sourceFiles: files }) {
         if (!appInfo.classFile || !files[appInfo.classFile] || !this.isValidFile(files[appInfo.classFile])) {

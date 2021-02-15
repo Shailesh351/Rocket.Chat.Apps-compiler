@@ -15,6 +15,7 @@ export declare class AppsCompiler {
     output(): IFiles;
     getImplemented(): string[];
     outputZip(outputPath: string): Promise<Buffer>;
+    private validateAppPermissionsSchema;
     private toJs;
     private normalizeDiagnostics;
     resolvePath(containingFile: string, moduleName: string, cwd: string): string;
