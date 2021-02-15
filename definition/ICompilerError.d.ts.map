@@ -1,0 +1,1 @@
+{"version":3,"file":"ICompilerError.d.ts","sourceRoot":"","sources":["../src/definition/ICompilerError.ts"],"names":[],"mappings":"AAAA,MAAM,WAAW,cAAc;IAC3B,IAAI,EAAE,MAAM,CAAC;IACb,IAAI,EAAE,MAAM,CAAC;IACb,SAAS,EAAE,MAAM,CAAC;IAClB,OAAO,EAAE,MAAM,CAAC;CACnB"}
