@@ -1,12 +1,15 @@
 import * as fs from 'fs';
+import * as vm from 'vm';
 import * as path from 'path';
 import * as fallbackTypescript from 'typescript';
 import {
     CompilerOptions, Diagnostic, EmitOutput,
     HeritageClause, LanguageServiceHost,
-    ModuleResolutionHost, ResolvedModule, SourceFile,
+    ModuleResolutionHost, ResolvedModule,
 } from 'typescript';
 
+import { createRequire } from 'module';
+import { Omit } from './misc/util';
 import { getAppSource } from './compiler/getAppSource';
 import { IAppSource, ICompilerDescriptor, ICompilerFile, ICompilerResult, IMapCompilerFile, IFiles } from './definition';
 import { Utilities } from './misc/Utilities';
@@ -14,6 +17,7 @@ import { FolderDetails } from './misc/folderDetails';
 import { AppPackager } from './misc/appPackager';
 import { ICompilerDiagnostic } from './definition/ICompilerDiagnostic';
 import { IPermission } from './definition/IPermission';
+import { getAvailablePermissions } from './misc/getAvailablePermissions';
 
 type TypeScript = typeof fallbackTypescript;
 
@@ -27,6 +31,8 @@ export class AppsCompiler {
     private implemented: string[];
 
     private wd: string;
+
+    private _appRequire: NodeRequire;
 
     constructor(
         private readonly compilerDesc: ICompilerDescriptor,
@@ -50,21 +56,39 @@ export class AppsCompiler {
         this.libraryFiles = {};
     }
 
+    /**
+    * Requires a module from the app's node_modules directory
+    *
+    * @param id {string} The id of the module
+     */
+    public get appRequire(): NodeRequire {
+        return this._appRequire;
+    }
+
     public async compile(path: string): Promise<ICompilerResult> {
         this.wd = path;
+        this._appRequire = createRequire(`${ path }/app.json`);
 
         const source = await getAppSource(path);
+
+        // Pre compilation validations
+        this.validateAppPermissionsSchema(source.appInfo.permissions);
+
         const compilerResult = this.toJs(source);
         const { files, implemented } = compilerResult;
+        const { permissions } = source.appInfo;
 
-        this.validateAppPermissionsSchema(source.appInfo.permissions);
+        this.validateAppPermissionsSchema(permissions);
+
         this.compiled = Object.entries(files)
             .map(([, { name, compiled }]) => ({ [name]: compiled }))
             .reduce((acc, cur) => Object.assign(acc, cur), {});
-
         this.implemented = implemented;
 
-        return compilerResult;
+        // Post compilation validations
+        this.checkInheritance(source.appInfo.classFile.replace(/\.ts$/, ''));
+
+        return Object.assign(compilerResult, { permissions });
     }
 
     public output(): IFiles {
@@ -90,33 +114,37 @@ export class AppsCompiler {
     }
 
     private validateAppPermissionsSchema(permissions: Array<IPermission>): void {
-        const examplePermissions = [{ name: 'user.read' }, { name: 'upload.write' }];
-        const error = new Error('Permissions declared in the app.json doesn\'t match the schema. '
-            + `It shoud be an peemissions array. e.g. ${ JSON.stringify(examplePermissions) }`);
-
         if (!permissions) {
             return;
         }
 
         if (!Array.isArray(permissions)) {
-            throw error;
+            throw new Error('Invalid permission definition. Check your manifest file.');
         }
 
+        const permissionsRequire = this.appRequire('@rocket.chat/apps-engine/server/permissions/AppPermissions');
+
+        if (!permissionsRequire || !permissionsRequire.AppPermissions) {
+            return;
+        }
+
+        const availablePermissions = getAvailablePermissions(permissionsRequire.AppPermissions);
+
         permissions.forEach((permission) => {
-            if (!permission || !permission.name) {
-                throw error;
+            if (permission && !availablePermissions.includes(permission.name)) {
+                throw new Error(`Invalid permission "${ String(permission.name) }" defined. Check your manifest file`);
             }
         });
     }
 
-    private toJs({ appInfo, sourceFiles: files }: IAppSource): ICompilerResult {
+    private toJs({ appInfo, sourceFiles: files }: IAppSource): Omit<ICompilerResult, 'permissions'> {
         if (!appInfo.classFile || !files[appInfo.classFile] || !this.isValidFile(files[appInfo.classFile])) {
             throw new Error(`Invalid App package. Could not find the classFile (${ appInfo.classFile }) file.`);
         }
 
         const startTime = Date.now();
 
-        const result: ICompilerResult = {
+        const result: Omit<ICompilerResult, 'permissions'> = {
             files,
             implemented: [],
             diagnostics: [],
@@ -218,12 +246,8 @@ export class AppsCompiler {
                     const e = node as HeritageClause;
 
                     this.ts.forEachChild(node, (nn) => {
-                        if (e.token === this.ts.SyntaxKind.ExtendsKeyword) {
-                            this.checkInheritance(src, nn.getText());
-                        } else if (e.token === this.ts.SyntaxKind.ImplementsKeyword) {
+                        if (e.token === this.ts.SyntaxKind.ImplementsKeyword) {
                             result.implemented.push(nn.getText());
-                        } else {
-                            console.log(e.token, nn.getText());
                         }
                     });
                 }
@@ -300,7 +324,7 @@ export class AppsCompiler {
         moduleName: string,
         resolvedModules: Array<ResolvedModule>,
         containingFile: string,
-        result: ICompilerResult,
+        result: Omit<ICompilerResult, 'permissions'>,
         cwd: string,
         moduleResHost: ModuleResolutionHost,
     ): number {
@@ -354,57 +378,61 @@ export class AppsCompiler {
         return this.libraryFiles[norm];
     }
 
-    private checkInheritance(src: SourceFile, extendedSymbol: string): void {
-        const allImports: string[] = [];
+    private checkInheritance(mainClassFile: string): void {
+        const { App: EngineBaseApp } = this.appRequire('@rocket.chat/apps-engine/definition/App');
+        const mainClassModule = this.requireCompiled(mainClassFile);
 
-        this.ts.forEachChild(src, (n) => {
-            if (this.ts.isImportDeclaration(n)) {
-                const renamings: Map<string, string> = new Map();
-                const imports = (n.importClause.namedBindings || n.importClause.name).getText()
-                    .replace(/[{|}]/g, '')
-                    .split(',')
-                    .map((identifier) => {
-                        const [exported, renamed] = identifier.split(' as ');
-
-                        if (exported && renamed) {
-                            renamings.set(renamed.trim(), exported.trim());
-                        }
-                        return identifier.replace(/^.*as/, '').trim();
-                    });
-                allImports.push(...imports);
-                if (imports.includes(extendedSymbol)) {
-                    try {
-                        const appsEngineAppPath = path.join(this.wd, 'node_modules/@rocket.chat/apps-engine/definition/App');
-                        const extendedAppShortPath = n.moduleSpecifier.getText().slice(1, -1);
-                        const extendedAppPath = path.isAbsolute(extendedAppShortPath) ? extendedAppShortPath // absolute path
-                            : extendedAppShortPath.startsWith('.')
-                                ? path.join(this.wd, extendedAppShortPath) // relative path
-                                : path.join(this.wd, 'node_modules', extendedAppShortPath); // external path (node_modules)
-                        const engine = import(appsEngineAppPath);
-                        const extendedApp = import(extendedAppPath);
-                        const importedSymbol = renamings.has(extendedSymbol) ? renamings.get(extendedSymbol) : extendedSymbol;
-
-                        extendedApp.then((App) => {
-                            engine.then((engine) => {
-                                const mockInfo = { name: '', requiredApiVersion: '', author: { name: '' } };
-                                const mockLogger = { debug: () => {} };
-                                const extendedApp = new App[importedSymbol](mockInfo, mockLogger);
-
-                                if (!(extendedApp instanceof engine.App)) {
-                                    throw new Error('App must extend apps-engine\'s "App" abstract class.');
-                                }
-                            }).catch(console.error);
-                        });
-                    } catch (err) {
-                        console.error(err, 'Try to run `npm install` in your app folder to fix it.');
-                    }
-                }
-            }
-        });
-
-        if (!allImports.includes(extendedSymbol)) {
-            throw new Error('App must extend apps-engine\'s "App" abstract class.');
+        if (!mainClassModule.default && !mainClassModule[mainClassFile]) {
+            throw new Error(`There must be an exported class "${ mainClassFile }" or a default export in the main class file.`);
         }
+
+        const RealApp = mainClassModule.default ? mainClassModule.default : mainClassModule[mainClassFile];
+        const mockInfo = { name: '', requiredApiVersion: '', author: { name: '' } };
+        const mockLogger = { debug: () => { } };
+        const realApp = new RealApp(mockInfo, mockLogger);
+
+        if (!(realApp instanceof EngineBaseApp)) {
+            throw new Error('App must extend apps-engine\'s "App" abstract class.'
+                + ' Maybe you forgot to install dependencies? Try running `npm install`'
+                + ' in your app folder to fix it.',
+            );
+        }
+    }
+
+    /**
+     * Require a module from the app compiled  source files
+     */
+    private requireCompiled(filename: string): any {
+        const exports = {};
+        const context = vm.createContext({
+            require: (filepath: string) => {
+                // Handles Apps-Engine import
+                if (filepath.startsWith('@rocket.chat/apps-engine/definition/')) {
+                    return require(`${ this.wd }/node_modules/${ filepath }`);
+                }
+
+                // Handles native node modules import
+                if (Utilities.allowedInternalModuleRequire(filepath)) {
+                    return require(filepath);
+                }
+
+                // At this point, if the app is trying to require anything that
+                // is not a relative path, we don't want to let it through
+                if (!filepath.startsWith('.')) {
+                    return undefined;
+                }
+
+                filepath = path.normalize(`${ path.dirname(filename) }/${ filepath }`);
+
+                // Handles import of other files in app's source
+                if (this.compiled[filepath.endsWith('.js') ? filepath : `${ filepath }.js`]) {
+                    return this.requireCompiled(filepath);
+                }
+            },
+            exports,
+        });
+        vm.runInContext(this.compiled[`${ filename }.js`], context);
+        return exports;
     }
 
     private isValidFile(file: ICompilerFile): boolean {

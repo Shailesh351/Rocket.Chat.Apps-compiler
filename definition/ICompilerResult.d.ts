@@ -1,3 +1,4 @@
+import { IPermission } from '@rocket.chat/apps-engine/definition/permissions/IPermission';
 import { ICompilerDiagnostic } from './ICompilerDiagnostic';
 import { ICompilerFile } from './ICompilerFile';
 export interface ICompilerResult {
@@ -10,5 +11,6 @@ export interface ICompilerResult {
     name: string;
     version: string;
     typeScriptVersion: string;
+    permissions: Array<IPermission>;
 }
 //# sourceMappingURL=ICompilerResult.d.ts.map
