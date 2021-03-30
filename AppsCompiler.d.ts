@@ -1,5 +1,6 @@
 import * as fallbackTypescript from 'typescript';
 import { ModuleResolutionHost, ResolvedModule } from 'typescript';
+import { Omit } from './misc/util';
 import { ICompilerDescriptor, ICompilerFile, ICompilerResult, IFiles } from './definition';
 declare type TypeScript = typeof fallbackTypescript;
 export declare class AppsCompiler {
@@ -10,7 +11,9 @@ export declare class AppsCompiler {
     private compiled;
     private implemented;
     private wd;
+    private _appRequire;
     constructor(compilerDesc: ICompilerDescriptor, ts?: TypeScript);
+    readonly appRequire: NodeRequire;
     compile(path: string): Promise<ICompilerResult>;
     output(): IFiles;
     getImplemented(): string[];
@@ -19,9 +22,10 @@ export declare class AppsCompiler {
     private toJs;
     private normalizeDiagnostics;
     resolvePath(containingFile: string, moduleName: string, cwd: string): string;
-    resolver(moduleName: string, resolvedModules: Array<ResolvedModule>, containingFile: string, result: ICompilerResult, cwd: string, moduleResHost: ModuleResolutionHost): number;
+    resolver(moduleName: string, resolvedModules: Array<ResolvedModule>, containingFile: string, result: Omit<ICompilerResult, 'permissions'>, cwd: string, moduleResHost: ModuleResolutionHost): number;
     getLibraryFile(fileName: string): ICompilerFile;
     private checkInheritance;
+    private requireCompiled;
     private isValidFile;
 }
 export {};

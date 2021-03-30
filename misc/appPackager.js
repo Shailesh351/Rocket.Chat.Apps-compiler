@@ -14,7 +14,6 @@ const path = __importStar(require("path"));
 const fs = __importStar(require("fs-extra"));
 const Yazl = __importStar(require("yazl"));
 const glob_1 = __importDefault(require("glob"));
-const metadata_1 = require("@rocket.chat/apps-engine/definition/metadata");
 class AppPackager {
     constructor(compilerDesc, fd, compiledApp, outputFilename) {
         this.compilerDesc = compilerDesc;
@@ -34,8 +33,9 @@ class AppPackager {
         return zipName;
     }
     overwriteAppManifest() {
+        const { AppInterface } = this.compiledApp.appRequire('@rocket.chat/apps-engine/definition/metadata');
         this.fd.info.implements = this.compiledApp.getImplemented()
-            .filter((interfaceName) => !!metadata_1.AppInterface[interfaceName]);
+            .filter((interfaceName) => !!AppInterface[interfaceName]);
         fs.writeFileSync(this.fd.infoFile, JSON.stringify(this.fd.info, null, 4));
     }
     async zipSupportFiles() {
