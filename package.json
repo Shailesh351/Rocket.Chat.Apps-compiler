@@ -49,7 +49,7 @@
         "ts-node": "^9.1.1"
     },
     "dependencies": {
-        "@rocket.chat/apps-engine": "git+https://github.com/WideChat/Rocket.Chat.Apps-engine.git#alpha",
+        "@rocket.chat/apps-engine": "git+https://github.com/Shailesh351/Rocket.Chat.Apps-engine.git#sb_fix_get_setting_value_by_id_wc",
         "figures": "^3.0.0",
         "fs-extra": "^8.1.0",
         "glob": "^7.1.4",
