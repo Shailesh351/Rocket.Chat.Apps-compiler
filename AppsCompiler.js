@@ -195,7 +195,7 @@ class AppsCompiler {
         Object.keys(result.files).forEach((key) => {
             const file = result.files[key];
             const output = languageService.getEmitOutput(file.name);
-            file.name = key.replace(/\.ts/g, '.js');
+            file.name = key.replace(/\.ts$/g, '.js');
             delete result.files[key];
             result.files[file.name] = file;
             file.compiled = output.outputFiles[0].text;
